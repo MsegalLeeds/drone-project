@@ -1,5 +1,7 @@
 # Software
 
+The [flight-controller engineering log](../docs/flight-controller-engineering-log.md) records the current local C/CLion setup, PID implementation, tests and control-system explanations. It distinguishes local development from source published in this repository.
+
 Software will eventually include:
 
 ```text
