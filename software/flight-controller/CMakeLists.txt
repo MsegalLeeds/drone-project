@@ -36,6 +36,7 @@ add_executable(test_simulation
         tests/test_simulation.c
         src/simulation/simulated_imu.c
         src/imu.c
+        src/mixer/mixer.c
 )
 
 target_include_directories(test_simulation PRIVATE include)
