@@ -24,6 +24,25 @@ int main(void)
 
     simulated_drone_init(&drone, initial_roll_deg);
 
+    /* Collect stationary readings before the simulation starts. */
+    enum { CALIBRATION_SAMPLES = 100 };
+    ImuSample calibration_samples[CALIBRATION_SAMPLES];
+
+    for (size_t i = 0; i < CALIBRATION_SAMPLES; i++) {
+        calibration_samples[i] =
+            imu_simulate(drone.roll_angle, drone.roll_rate);
+
+        calibration_samples[i].gyro_x += gyro_bias;
+    }
+
+    const float gyro_offset = imu_calibrate_gyro_x(
+        calibration_samples,
+        CALIBRATION_SAMPLES
+    );
+
+    /* Keep diagnostic text out of the CSV on stdout. */
+    fprintf(stderr, "Gyro-X calibration: %.3f deg/s\n", gyro_offset);
+
     /* Initialise the estimate from the accelerometer reading. */
     ImuSample sample =
         imu_simulate(drone.roll_angle, drone.roll_rate);
@@ -36,7 +55,14 @@ int main(void)
     printf("time,true_roll,estimated_roll,target_roll,control\n");
 
     for (int i = 0; i < 500; i++) {
+        /* Apply the disturbance before reading the sensors. */
+        if (i == 100) {
+            drone.roll_rate += disturbance_rate;
+        }
+
         sample = imu_simulate(drone.roll_angle, drone.roll_rate);
+        sample.gyro_x += gyro_bias;
+        sample.gyro_x -= gyro_offset;
 
         float estimated_roll = attitude_update(
             &estimator,
@@ -46,15 +72,6 @@ int main(void)
             dt
         );
 
-        /* Rotational shove at one second. */
-        if (i == 100) {
-            drone.roll_rate += disturbance_rate;
-        }
-
-        sample = imu_simulate(drone.roll_angle, drone.roll_rate);
-        sample.gyro_x += gyro_bias;
-
-        /* The controller receives the estimate, not the true angle. */
         float control = pid_update(
             &roll_pid,
             target_roll,
@@ -70,7 +87,6 @@ int main(void)
             target_roll,
             control
         );
-
 
         simulated_drone_step(&drone, control, dt);
     }

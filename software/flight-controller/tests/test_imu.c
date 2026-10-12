@@ -35,11 +35,34 @@ static void test_roll_rate(void)
     assert(nearly_equal(sample.gyro_x, 45.0f));
 }
 
+static void test_gyro_calibration(float bias)
+{
+    ImuSample samples[] = {
+        {.gyro_x = bias - 0.2f},
+        {.gyro_x = bias + 0.2f},
+        {.gyro_x = bias - 0.1f},
+        {.gyro_x = bias + 0.1f}
+    };
+
+    float offset = imu_calibrate_gyro_x(samples, 4);
+    assert(nearly_equal(offset, bias));
+
+    /* Subtract the bias without removing genuine rotation. */
+    ImuSample moving = imu_simulate(0.0f, 30.0f);
+    moving.gyro_x += bias;
+    moving.gyro_x -= offset;
+
+    assert(nearly_equal(moving.gyro_x, 30.0f));
+}
+
 int main(void)
 {
     test_level_drone();
     test_roll_angle();
     test_roll_rate();
+    test_gyro_calibration(0.0f);
+    test_gyro_calibration(1.0f);
+    test_gyro_calibration(-1.0f);
 
     printf("IMU tests passed\n");
     return 0;

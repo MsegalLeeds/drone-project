@@ -1,5 +1,5 @@
 #include "imu.h"
-
+#include <assert.h>
 #include <math.h>
 
 #define GRAVITY 9.81f
@@ -20,4 +20,18 @@ ImuSample imu_simulate(float roll_angle_deg, float roll_rate_deg_s)
     };
 
     return sample;
+}
+
+float imu_calibrate_gyro_x(const ImuSample *samples, size_t count)
+{
+    assert(samples != NULL);
+    assert(count > 0);
+
+    double sum = 0.0;
+
+    for (size_t i = 0; i < count; i++) {
+        sum += samples[i].gyro_x;
+    }
+
+    return (float)(sum / count);
 }

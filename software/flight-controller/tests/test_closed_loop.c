@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 #include "attitude.h"
 #include "imu.h"
@@ -10,7 +11,9 @@
 static void test_roll_recovery(
     float initial_roll,
     float disturbance_rate,
-    float gyro_bias
+    float gyro_bias,
+    bool calibrate
+
 )
 {
     SimulatedDrone drone;
@@ -21,6 +24,25 @@ static void test_roll_recovery(
     const float rad_to_deg = 57.29577951308232f;
 
     simulated_drone_init(&drone, initial_roll);
+
+    float gyro_offset = 0.0f;
+
+    if (calibrate) {
+        enum { CALIBRATION_SAMPLES = 100 };
+        ImuSample calibration_samples[CALIBRATION_SAMPLES];
+
+        for (size_t i = 0; i < CALIBRATION_SAMPLES; i++) {
+            calibration_samples[i] =
+                imu_simulate(drone.roll_angle, drone.roll_rate);
+
+            calibration_samples[i].gyro_x += gyro_bias;
+        }
+
+        gyro_offset = imu_calibrate_gyro_x(
+            calibration_samples,
+            CALIBRATION_SAMPLES
+        );
+    }
 
     ImuSample sample =
         imu_simulate(drone.roll_angle, drone.roll_rate);
@@ -43,6 +65,7 @@ static void test_roll_recovery(
 
         /* Bias affects the measurement, not the drone's actual motion. */
         sample.gyro_x += gyro_bias;
+        sample.gyro_x -= gyro_offset;
 
         float estimated_roll = attitude_update(
             &estimator,
@@ -69,14 +92,16 @@ static void test_roll_recovery(
         assert(isfinite(drone.roll_angle));
         assert(isfinite(drone.roll_rate));
 
-        /* At t = 1 s, apply a sudden change in roll rate, in degrees/s. */
-        if (i == 100) {
-            drone.roll_rate += disturbance_rate;
-        }
-
-        /* Remain within one degree throughout the final second. */
+        /* Check roll and estimation error throughout the final second. */
         if (i >= 399) {
             assert(fabsf(drone.roll_angle) <= 1.0f);
+            assert(fabsf(estimated_roll - drone.roll_angle) <= 1.0f);
+        }
+
+        /* At the end, calibrated runs should be close to truly level. */
+        if (calibrate && i == 499) {
+            assert(fabsf(drone.roll_angle) <= 0.05f);
+            assert(fabsf(estimated_roll - drone.roll_angle) <= 0.01f);
         }
     }
 
@@ -90,19 +115,21 @@ static void test_roll_recovery(
 
 int main(void)
 {
-    /* Original recovery cases. */
-    test_roll_recovery(20.0f, 0.0f, 0.0f);
-    test_roll_recovery(-20.0f, 0.0f, 0.0f);
-    test_roll_recovery(0.0f, 0.0f, 0.0f);
+    /* Original recovery cases without calibration. */
+    test_roll_recovery(20.0f, 0.0f, 0.0f, false);
+    test_roll_recovery(-20.0f, 0.0f, 0.0f, false);
+    test_roll_recovery(0.0f, 0.0f, 0.0f, false);
 
-    /* Sudden rotational disturbances. */
-    test_roll_recovery(0.0f, 45.0f, 0.0f);
-    test_roll_recovery(0.0f, -45.0f, 0.0f);
+    /* Disturbance and bias tolerance without calibration. */
+    test_roll_recovery(0.0f, 45.0f, 0.0f, false);
+    test_roll_recovery(0.0f, -45.0f, 0.0f, false);
+    test_roll_recovery(0.0f, 0.0f, 1.0f, false);
+    test_roll_recovery(0.0f, 0.0f, -1.0f, false);
 
-    /* Constant gyroscope bias in either direction. */
-    test_roll_recovery(0.0f, 0.0f, 1.0f);
-    test_roll_recovery(0.0f, 0.0f, -1.0f);
+    /* Calibration with initial tilt, a shove and sensor bias. */
+    test_roll_recovery(20.0f, 45.0f, 1.0f, true);
+    test_roll_recovery(-20.0f, -45.0f, -1.0f, true);
 
-    printf("All closed-loop tests passed.\n");
+    printf("All nine closed-loop scenarios passed.\n");
     return 0;
 }
