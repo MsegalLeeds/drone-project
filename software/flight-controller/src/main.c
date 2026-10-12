@@ -5,6 +5,7 @@
 #include "imu.h"
 #include "pid.h"
 #include "simulated_imu.h"
+#include "mixer.h"
 
 int main(void)
 {
@@ -79,6 +80,23 @@ int main(void)
             dt
         );
 
+        float roll_command = control / 200.0f;
+
+        const float throttle = 0.5f;
+
+        MotorOutputs motors = mixer_quad_x(
+            0.5f,
+            control / 200.0f,
+            0.0f,
+            0.0f
+        );
+
+        simulated_drone_step_motors(
+            &drone,
+            motors,
+            dt
+        );
+
         printf(
             "%.2f,%.6f,%.6f,%.6f,%.6f\n",
             i * dt,
@@ -88,7 +106,6 @@ int main(void)
             control
         );
 
-        simulated_drone_step(&drone, control, dt);
     }
 
     return 0;

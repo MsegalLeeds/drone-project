@@ -70,6 +70,7 @@ add_executable(test_closed_loop
         src/estimation/attitude.c
         src/imu.c
         src/simulation/simulated_imu.c
+        src/mixer/mixer.c
 )
 
 target_include_directories(test_closed_loop PRIVATE include)

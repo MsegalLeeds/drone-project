@@ -7,6 +7,7 @@
 #include "imu.h"
 #include "pid.h"
 #include "simulated_imu.h"
+#include "mixer.h"
 
 static void test_roll_recovery(
     float initial_roll,
@@ -76,18 +77,45 @@ static void test_roll_recovery(
         );
 
         float control = pid_update(
-            &pid,
-            0.0f,
-            estimated_roll,
-            dt
-        );
+    &pid,
+    0.0f,
+    estimated_roll,
+    dt
+);
 
         assert(isfinite(estimated_roll));
         assert(isfinite(control));
         assert(control >= -100.0f);
         assert(control <= 100.0f);
 
-        simulated_drone_step(&drone, control, dt);
+        /*
+         * PID output is [-100, 100].
+         *
+         * Mixer roll input of +/-0.5 gives motor outputs from
+         * 0.0 to 1.0 around a 0.5 hover throttle.
+         *
+         * With MOTOR_TORQUE_SCALE = 50:
+         *
+         * roll torque = 4 * roll_command
+         * angular acceleration = 4 * roll_command * 50
+         *
+         * Dividing by 200 therefore preserves the old simulation:
+         * angular acceleration = control.
+         */
+        float roll_command = control / 200.0f;
+
+        MotorOutputs motors = mixer_quad_x(
+            0.5f,
+            roll_command,
+            0.0f,
+            0.0f
+        );
+
+        simulated_drone_step_motors(
+            &drone,
+            motors,
+            dt
+        );
 
         assert(isfinite(drone.roll_angle));
         assert(isfinite(drone.roll_rate));

@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include"pid.h"
+#include "mixer.h"
 
 static int nearly_equal(float a, float b)
 {
