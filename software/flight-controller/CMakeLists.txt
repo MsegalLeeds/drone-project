@@ -75,3 +75,13 @@ target_include_directories(test_closed_loop PRIVATE include)
 target_link_libraries(test_closed_loop m)
 
 add_test(NAME closed_loop_tests COMMAND test_closed_loop)
+
+add_executable(test_mixer
+        tests/test_mixer.c
+        src/mixer/mixer.c
+)
+
+target_include_directories(test_mixer PRIVATE include)
+target_link_libraries(test_mixer m)
+
+add_test(NAME mixer_tests COMMAND test_mixer)
