@@ -67,13 +67,13 @@ Use GitHub for the **live engineering record**. The formal Word report can conta
 
 | Area | Status |
 |---|---|
-| Requirements | Not started |
-| System architecture | Not started |
+| Requirements | Started |
+| System architecture |  Started |
 | Propulsion sizing | Not started |
 | Frame design | Not started |
-| Electronics | Not started |
-| Flight controller | Not started |
-| Simulation / HIL | Not started |
+| Electronics |  Started |
+| Flight controller |  Started |
+| Simulation / HIL |  Started |
 | Manufacturing | Not started |
 | Bench testing | Not started |
 | Flight testing | Not started |
