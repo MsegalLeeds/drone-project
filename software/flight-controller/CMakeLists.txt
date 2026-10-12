@@ -49,7 +49,6 @@ add_executable(test_attitude
 )
 
 target_include_directories(test_attitude PRIVATE include)
-
 target_link_libraries(test_attitude m)
 
 add_test(NAME attitude_tests COMMAND test_attitude)
@@ -63,3 +62,16 @@ target_include_directories(test_imu PRIVATE include)
 target_link_libraries(test_imu m)
 
 add_test(NAME imu_tests COMMAND test_imu)
+
+add_executable(test_closed_loop
+        tests/test_closed_loop.c
+        src/control/pid.c
+        src/estimation/attitude.c
+        src/imu.c
+        src/simulation/simulated_imu.c
+)
+
+target_include_directories(test_closed_loop PRIVATE include)
+target_link_libraries(test_closed_loop m)
+
+add_test(NAME closed_loop_tests COMMAND test_closed_loop)
