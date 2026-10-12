@@ -4,6 +4,7 @@ GitHub is the project's live engineering record. The formal Word report can cont
 
 ## Documents
 
+- [flight-controller-engineering-log.md](flight-controller-engineering-log.md) — running flight-controller write-up, local C/PID implementation and test evidence.
 - [requirements.md](requirements.md) — measurable system requirements and constraints.
 - [architecture.md](architecture.md) — high-level hardware/software architecture.
 - [decisions/](decisions/) — engineering decision records.
