@@ -6,6 +6,10 @@
 typedef struct {
     float roll_angle;
     float roll_rate;
+
+    /* Positive values are upward. */
+    float altitude;
+    float vertical_velocity;
 } SimulatedDrone;
 
 void simulated_drone_init(
@@ -14,10 +18,7 @@ void simulated_drone_init(
 );
 
 /*
- * Legacy direct-control simulation step.
- *
- * Kept temporarily so the existing closed-loop simulation
- * continues to build while the motor-driven model is introduced.
+ * Legacy roll-only simulation step.
  */
 void simulated_drone_step(
     SimulatedDrone *drone,
@@ -26,9 +27,12 @@ void simulated_drone_step(
 );
 
 /*
- * Advance the roll simulation using four normalized motor outputs.
+ * Advance the simulation using the four motor outputs.
  *
- * Motor outputs are expected to be in the range 0.0f - 1.0f.
+ * This currently models:
+ * - roll dynamics
+ * - vertical thrust
+ * - gravity
  */
 void simulated_drone_step_motors(
     SimulatedDrone *drone,

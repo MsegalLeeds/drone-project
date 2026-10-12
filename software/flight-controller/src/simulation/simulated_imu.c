@@ -3,6 +3,21 @@
 #define ROLL_DAMPING 1.5f
 #define MOTOR_TORQUE_SCALE 50.0f
 
+#define GRAVITY 9.81f
+#define DRONE_MASS 1.0f
+
+/*
+ * Maximum thrust produced by one motor.
+ *
+ * With four motors:
+ *
+ * 4 * 0.5 * 4.905 = 9.81 N
+ *
+ * Therefore 0.5 throttle represents hover for
+ * the current 1 kg simulated drone.
+ */
+#define MAX_MOTOR_THRUST 4.905f
+
 void simulated_drone_init(
     SimulatedDrone *drone,
     float initial_roll
@@ -10,6 +25,9 @@ void simulated_drone_init(
 {
     drone->roll_angle = initial_roll;
     drone->roll_rate = 0.0f;
+
+    drone->altitude = 0.0f;
+    drone->vertical_velocity = 0.0f;
 }
 
 void simulated_drone_step(
@@ -43,20 +61,20 @@ void simulated_drone_step_motors(
         return;
     }
 
-    float left_thrust =
+    /*
+     * Roll dynamics
+     */
+    float left_motor_output =
         motors.front_left +
         motors.rear_left;
 
-    float right_thrust =
+    float right_motor_output =
         motors.front_right +
         motors.rear_right;
 
-    /*
-     * Positive roll command in mixer_quad_x() increases
-     * the left motors and decreases the right motors.
-     */
     float roll_torque =
-        left_thrust - right_thrust;
+        left_motor_output -
+        right_motor_output;
 
     float angular_acceleration =
         roll_torque * MOTOR_TORQUE_SCALE -
@@ -67,4 +85,26 @@ void simulated_drone_step_motors(
 
     drone->roll_angle +=
         drone->roll_rate * dt;
+
+    /*
+     * Vertical dynamics
+     */
+    float total_motor_output =
+        motors.front_left +
+        motors.front_right +
+        motors.rear_right +
+        motors.rear_left;
+
+    float total_thrust =
+        total_motor_output * MAX_MOTOR_THRUST;
+
+    float vertical_acceleration =
+        (total_thrust / DRONE_MASS) -
+        GRAVITY;
+
+    drone->vertical_velocity +=
+        vertical_acceleration * dt;
+
+    drone->altitude +=
+        drone->vertical_velocity * dt;
 }
