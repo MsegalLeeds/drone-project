@@ -145,3 +145,18 @@ Running `drone_sim` printed `Drone flight controller simulation running.` These 
 Publish the local source separately so a fresh clone can reproduce the build. Next control improvements are output limits and integral anti-windup with tests that exercise saturation and recovery. Further work includes explicit timing behaviour, derivative noise handling, a simulated plant and axis sign conventions before connecting real sensors or actuators.
 
 For each subsequent milestone, append a dated entry with the problem, changed files or commit, reasoning, exact verification procedure, observed results, limitations and next step. Distinguish proposed behaviour from implemented behaviour. Link the relevant pull request or experiment once available, and update older descriptions when the current implementation changes while retaining their dated results.
+
+
+## 2026-10-12: Closed-loop tests and baseline roll-response plot
+
+The controller sources are now committed. The project includes a single-axis dynamics model, simulated IMU, complementary attitude estimator, bounded PID control and CSV plotting. A fresh Debug rebuild on 12 October passed all five CTest suites: PID, simulation, attitude, IMU and closed-loop control.
+
+![Baseline simulated roll recovery from -20 degrees](../media/roll.png)
+
+The supplied image and accompanying local CSV record the earlier baseline run starting at -20 degrees with a zero-degree target. The CSV contains samples every 0.1 seconds from 0.0 to 4.9 seconds; its last recorded true and estimated roll values are both -0.005 degrees at the exported precision. The baseline controller uses Kp=5, Ki=0, Kd=2, a 0.01-second simulation step and control limits of -100 to +100 simulation units. This image is baseline evidence, not evidence of the later disturbance and bias demonstration. Its generating source revision was not captured with the export.
+
+### Verification limits and next corrections
+
+The current closed-loop executable includes seven scenarios covering initial roll, signed disturbances and signed gyro bias. Although all scenarios pass, inspection found that the test applies the disturbance twice and lacks the proposed final-second estimation-error assertion. In the demonstration, gyro bias is added to a sample after the estimator update, then overwritten by the next iteration's fresh sample; the estimator therefore does not receive that bias. Correct the operation order and test assertions, rerun the suites, then regenerate separately labelled baseline and disturbed/bias plots.
+
+These results concern the simplified host simulation only. They do not establish hardware or flight performance.
