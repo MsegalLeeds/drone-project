@@ -181,3 +181,216 @@ The CSV contains 50 samples from 0.00 to 4.90 seconds, at 0.10-second intervals.
 ### Follow-up
 
 Rebuild the intended simulation executable before exporting again. Capture matched uncalibrated and calibrated runs with the same initial angle, disturbance, bias, controller gains and timestep. Confirm the measured calibration offset and record the source revision and run settings with the new evidence. Retain these original exports as part of the engineering history.
+
+## 2026-10-12: Motor mixing, motor-driven dynamics and vertical simulation
+
+### Objective
+
+The previous simulation allowed the PID controller to apply an abstract roll-control value directly to the simulated aircraft.
+
+Although useful for validating the PID and attitude estimator, this skipped an important part of a real quadcopter flight-control system: converting control requests into individual motor commands.
+
+This milestone introduced a Quad-X motor mixer and changed the simulation so aircraft motion can be produced by four motor outputs.
+
+### Quad-X motor mixer
+
+The flight controller now defines four normalized motor outputs:
+
+```text
+              FRONT
+
+        M1             M2
+   Front Left     Front Right
+      CCW              CW
+
+
+        M4             M3
+    Rear Left      Rear Right
+       CW              CCW
+```
+
+The mixer accepts:
+
+- collective throttle
+- roll correction
+- pitch correction
+- yaw correction
+
+and produces four normalized motor outputs.
+
+Motor commands are limited to the range:
+
+```text
+0.0 <= motor output <= 1.0
+```
+
+Although the mixer supports roll, pitch and yaw inputs, the current aircraft dynamics model only implements roll.
+
+### Motor-driven roll simulation
+
+The original roll simulation accepted a single abstract control input.
+
+The new simulation determines roll torque from the difference between the combined left and right motor outputs.
+
+Conceptually:
+
+```text
+left output =
+    front-left + rear-left
+
+right output =
+    front-right + rear-right
+
+roll torque =
+    left output - right output
+```
+
+The simulated angular acceleration is then calculated from the motor imbalance and an existing roll-damping term.
+
+The motor torque scaling constant is currently a simulation parameter. It has not been derived from measured motor thrust, arm length or aircraft moment of inertia.
+
+### Closed-loop integration
+
+The roll-control path now passes through the same major stages expected in the eventual aircraft:
+
+```text
+IMU measurement
+      ↓
+attitude estimation
+      ↓
+PID controller
+      ↓
+roll command
+      ↓
+Quad-X mixer
+      ↓
+four motor outputs
+      ↓
+aircraft dynamics
+```
+
+The PID output is scaled before entering the normalized mixer.
+
+With the current simulation constants, this scaling was chosen so the motor-driven plant preserves approximately the same control authority as the previous direct-control simulation.
+
+Existing closed-loop recovery tests were retained to ensure the architectural change did not break the previously demonstrated stabilization behavior.
+
+### Vertical dynamics
+
+The simulated aircraft state was extended with:
+
+```text
+altitude
+vertical velocity
+```
+
+The current sign convention treats positive altitude and vertical velocity as upward.
+
+Vertical acceleration is calculated using Newton's second law:
+
+```text
+acceleration = force / mass
+```
+
+with gravity subtracted from total motor thrust:
+
+```text
+vertical acceleration =
+    total thrust / aircraft mass
+    - gravitational acceleration
+```
+
+The current simulation constants are:
+
+```text
+aircraft mass       = 1.0 kg
+gravity             = 9.81 m/s²
+maximum motor thrust = 4.905 N per motor
+```
+
+For four motors at 50% output:
+
+```text
+total thrust
+= 4 × 0.5 × 4.905
+= 9.81 N
+```
+
+The gravitational force on the simulated 1 kg aircraft is also 9.81 N.
+
+Therefore:
+
+```text
+0.5 throttle → approximately zero vertical acceleration
+```
+
+for a level aircraft in the current model.
+
+This provides a convenient nominal hover point for subsequent altitude-control development.
+
+### Vertical simulation tests
+
+Additional simulation tests verify that:
+
+- 50% equal motor output produces no vertical acceleration
+- zero motor output causes downward acceleration
+- full motor output causes upward acceleration
+- a pure roll command around 50% throttle preserves total thrust
+- zero timestep leaves roll and vertical state unchanged
+
+These tests validate the current equations rather than real aircraft performance.
+
+### Important limitations
+
+The vertical model currently assumes all motor thrust acts in the vertical direction.
+
+This is only correct while the aircraft is level.
+
+When an aircraft rolls or pitches, its thrust vector tilts. The vertical component should therefore decrease approximately according to the attitude of the aircraft.
+
+For a roll-only approximation:
+
+```text
+vertical thrust ≈ total thrust × cos(roll)
+```
+
+A complete model would resolve the thrust vector using both roll and pitch and use the remaining horizontal component to calculate translational acceleration.
+
+Other effects not currently modeled include:
+
+- aerodynamic drag
+- motor response time
+- propeller dynamics
+- ground contact
+- battery voltage changes
+- aircraft moment of inertia
+- measured thrust curves
+- sensor vibration and noise
+
+The present simulator should therefore be treated as a control-development tool rather than a high-fidelity physics model.
+
+### Current milestone
+
+At this point the project has demonstrated a complete simulated roll-control path from sensor measurement to individual motor commands, while also establishing a basic vertical-motion model.
+
+The software remains hardware independent and can continue to be exercised on the development computer before the STM32H753 hardware layer is introduced.
+
+### Next steps
+
+The next major control milestone is altitude control.
+
+Instead of using a fixed throttle value, an altitude controller will compare:
+
+```text
+target altitude
+        ↓
+altitude error
+        ↓
+altitude PID
+        ↓
+collective throttle
+```
+
+The resulting collective throttle can then be combined with roll, pitch and yaw corrections by the existing Quad-X mixer.
+
+Before relying on altitude behavior for more realistic simulation, the model should also account for loss of vertical thrust while the aircraft is tilted.
