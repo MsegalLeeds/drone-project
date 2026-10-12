@@ -160,3 +160,24 @@ The supplied image and accompanying local CSV record the earlier baseline run st
 The current closed-loop executable includes seven scenarios covering initial roll, signed disturbances and signed gyro bias. Although all scenarios pass, inspection found that the test applies the disturbance twice and lacks the proposed final-second estimation-error assertion. In the demonstration, gyro bias is added to a sample after the estimator update, then overwritten by the next iteration's fresh sample; the estimator therefore does not receive that bias. Correct the operation order and test assertions, rerun the suites, then regenerate separately labelled baseline and disturbed/bias plots.
 
 These results concern the simplified host simulation only. They do not establish hardware or flight performance.
+
+
+## 2026-10-12: Additional roll-response exports
+
+These two supplied images are preserved under their original filenames. Their adjacent local CSV files were inspected before publication. The filenames do not reliably identify the scenarios; the descriptions below follow the recorded data. These exports do not establish a before/after calibration comparison, and their generating source revisions were not recorded.
+
+### Export named `roll-calibrated.png`
+
+![Positive initial roll, one-second disturbance and residual estimation offset](../media/roll-calibrated.png)
+
+The CSV contains 500 samples from 0.00 to 4.99 seconds, at 0.01-second intervals. True roll starts at +20 degrees, with a zero-degree target. A disturbance response is visible around one second. At the final sample, true roll is -0.503546 degrees and estimated roll is -0.013427 degrees, giving an estimated-minus-true error of +0.490119 degrees. The response is consistent with the earlier +45 degrees/second disturbance and +1 degree/second uncorrected gyro-bias scenario. Despite its filename, this export does not demonstrate successful bias removal.
+
+### Export named `roll-disturbed-bias.png`
+
+![Baseline recovery from negative twenty degrees](../media/roll-disturbed-bias.png)
+
+The CSV contains 50 samples from 0.00 to 4.90 seconds, at 0.10-second intervals. True and estimated roll start at -20 degrees and finish at -0.005 degrees at the exported precision, with a zero-degree target. The image shows baseline recovery rather than the intended disturbed, biased run. It should not be cited as disturbance or gyro-bias validation.
+
+### Follow-up
+
+Rebuild the intended simulation executable before exporting again. Capture matched uncalibrated and calibrated runs with the same initial angle, disturbance, bias, controller gains and timestep. Confirm the measured calibration offset and record the source revision and run settings with the new evidence. Retain these original exports as part of the engineering history.
