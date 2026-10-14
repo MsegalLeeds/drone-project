@@ -8,6 +8,7 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 add_executable(drone_sim
         src/main.c
         src/control/pid.c
+        src/control/flight_controller.c
         src/estimation/attitude.c
         src/simulation/simulated_imu.c
         src/mixer/mixer.c
@@ -87,3 +88,28 @@ target_include_directories(test_mixer PRIVATE include)
 target_link_libraries(test_mixer m)
 
 add_test(NAME mixer_tests COMMAND test_mixer)
+
+add_executable(test_flight_controller
+        tests/test_flight_controller.c
+        src/control/flight_controller.c
+        src/control/pid.c
+        src/estimation/attitude.c
+        src/imu.c
+        src/mixer/mixer.c
+)
+
+target_include_directories(
+        test_flight_controller
+        PRIVATE
+        include
+)
+
+target_link_libraries(
+        test_flight_controller
+        m
+)
+
+add_test(
+        NAME flight_controller_tests
+        COMMAND test_flight_controller
+)
