@@ -258,6 +258,56 @@ static void test_gyro_offsets_are_removed(void)
     );
 }
 
+static void test_positive_yaw_rate_generates_correction(void)
+{
+    FlightController controller;
+
+    flight_controller_init_3d(
+        &controller,
+        0.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        0.0f
+    );
+
+    ImuSample sample =
+        imu_simulate_attitude_3d(
+            0.0f,
+            0.0f,
+            0.0f,
+            0.0f,
+            0.0f
+        );
+
+    FlightControllerOutput output =
+        flight_controller_update_3d(
+            &controller,
+            &sample,
+            0.0f,
+            0.0f,
+            45.0f,
+            0.5f,
+            0.01f
+        );
+
+    assert(output.yaw_control > 0.0f);
+
+    /*
+     * Positive yaw increases the CW motors:
+     * front-right and rear-left.
+     */
+    assert(
+        output.motors.front_right >
+        output.motors.front_left
+    );
+
+    assert(
+        output.motors.rear_left >
+        output.motors.rear_right
+    );
+}
+
 static void test_invalid_dt_produces_zero_output(void)
 {
     FlightController controller;
@@ -309,6 +359,7 @@ int main(void)
     test_positive_roll_generates_correction();
     test_positive_pitch_generates_correction();
     test_gyro_offsets_are_removed();
+    test_positive_yaw_rate_generates_correction();
     test_invalid_dt_produces_zero_output();
 
     printf(

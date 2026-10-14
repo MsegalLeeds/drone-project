@@ -2,8 +2,10 @@
 
 #define ROLL_DAMPING 1.5f
 #define PITCH_DAMPING 1.5f
+#define YAW_DAMPING 1.5f
 
 #define MOTOR_TORQUE_SCALE 50.0f
+#define YAW_TORQUE_SCALE 50.0f
 
 #define GRAVITY 9.81f
 #define DRONE_MASS 1.0f
@@ -20,10 +22,11 @@
  */
 #define MAX_MOTOR_THRUST 4.905f
 
-void simulated_drone_init_attitude(
+void simulated_drone_init_attitude_3d(
     SimulatedDrone *drone,
     float initial_roll,
-    float initial_pitch
+    float initial_pitch,
+    float initial_yaw
 )
 {
     drone->roll_angle = initial_roll;
@@ -32,8 +35,25 @@ void simulated_drone_init_attitude(
     drone->pitch_angle = initial_pitch;
     drone->pitch_rate = 0.0f;
 
+    drone->yaw_angle = initial_yaw;
+    drone->yaw_rate = 0.0f;
+
     drone->altitude = 0.0f;
     drone->vertical_velocity = 0.0f;
+}
+
+void simulated_drone_init_attitude(
+    SimulatedDrone *drone,
+    float initial_roll,
+    float initial_pitch
+)
+{
+    simulated_drone_init_attitude_3d(
+        drone,
+        initial_roll,
+        initial_pitch,
+        0.0f
+    );
 }
 
 void simulated_drone_init(
@@ -134,6 +154,36 @@ void simulated_drone_step_motors(
 
     drone->pitch_angle +=
         drone->pitch_rate * dt;
+    /*
+     * Yaw dynamics.
+     *
+     * Front-right and rear-left rotate CW.
+     * Front-left and rear-right rotate CCW.
+     *
+     * Positive yaw command increases the
+     * CW motor pair.
+     */
+    float clockwise_motor_output =
+        motors.front_right +
+        motors.rear_left;
+
+    float counterclockwise_motor_output =
+        motors.front_left +
+        motors.rear_right;
+
+    float yaw_torque =
+        clockwise_motor_output -
+        counterclockwise_motor_output;
+
+    float yaw_acceleration =
+        yaw_torque * YAW_TORQUE_SCALE -
+        YAW_DAMPING * drone->yaw_rate;
+
+    drone->yaw_rate +=
+        yaw_acceleration * dt;
+
+    drone->yaw_angle +=
+        drone->yaw_rate * dt;
 
     /*
      * Vertical dynamics.

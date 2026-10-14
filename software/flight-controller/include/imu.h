@@ -26,7 +26,9 @@ ImuSample imu_simulate(
 );
 
 /*
- * Simulate an IMU for combined roll and pitch.
+ * Simulate roll and pitch.
+ *
+ * Yaw rate is assumed to be zero.
  */
 ImuSample imu_simulate_attitude(
     float roll_angle_deg,
@@ -35,12 +37,31 @@ ImuSample imu_simulate_attitude(
     float pitch_rate_deg_s
 );
 
+/*
+ * Simulate roll, pitch and yaw rate.
+ *
+ * Absolute yaw angle is not needed because
+ * gravity cannot provide a yaw heading.
+ */
+ImuSample imu_simulate_attitude_3d(
+    float roll_angle_deg,
+    float pitch_angle_deg,
+    float roll_rate_deg_s,
+    float pitch_rate_deg_s,
+    float yaw_rate_deg_s
+);
+
 float imu_calibrate_gyro_x(
     const ImuSample *samples,
     size_t count
 );
 
 float imu_calibrate_gyro_y(
+    const ImuSample *samples,
+    size_t count
+);
+
+float imu_calibrate_gyro_z(
     const ImuSample *samples,
     size_t count
 );

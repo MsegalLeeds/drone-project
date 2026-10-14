@@ -13,6 +13,9 @@ typedef struct {
     /* Positive values are upward. */
     float altitude;
     float vertical_velocity;
+
+    float yaw_angle;
+    float yaw_rate;
 } SimulatedDrone;
 
 /*
@@ -35,6 +38,16 @@ void simulated_drone_init_attitude(
 );
 
 /*
+ * Initialise roll, pitch and yaw.
+ */
+void simulated_drone_init_attitude_3d(
+    SimulatedDrone *drone,
+    float initial_roll,
+    float initial_pitch,
+    float initial_yaw
+);
+
+/*
  * Legacy roll-only simulation step.
  */
 void simulated_drone_step(
@@ -49,6 +62,7 @@ void simulated_drone_step(
  * This models:
  * - roll dynamics
  * - pitch dynamics
+ * - yaw dynamics
  * - vertical thrust
  * - gravity
  */

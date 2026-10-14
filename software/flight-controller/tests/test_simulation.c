@@ -447,6 +447,90 @@ static void test_stronger_front_motors_produce_negative_pitch(void)
     assert(drone.pitch_angle < 0.0f);
 }
 
+static void test_yaw_initialization(void)
+{
+    SimulatedDrone drone;
+
+    simulated_drone_init_attitude_3d(
+        &drone,
+        10.0f,
+        -20.0f,
+        30.0f
+    );
+
+    assert(
+        nearly_equal(
+            drone.yaw_angle,
+            30.0f
+        )
+    );
+
+    assert(
+        nearly_equal(
+            drone.yaw_rate,
+            0.0f
+        )
+    );
+}
+
+static void test_positive_yaw_command_produces_positive_yaw(void)
+{
+    SimulatedDrone drone;
+
+    simulated_drone_init_attitude_3d(
+        &drone,
+        0.0f,
+        0.0f,
+        0.0f
+    );
+
+    MotorOutputs motors =
+        mixer_quad_x(
+            0.5f,
+            0.0f,
+            0.0f,
+            0.1f
+        );
+
+    simulated_drone_step_motors(
+        &drone,
+        motors,
+        0.1f
+    );
+
+    assert(drone.yaw_rate > 0.0f);
+    assert(drone.yaw_angle > 0.0f);
+}
+
+static void test_negative_yaw_command_produces_negative_yaw(void)
+{
+    SimulatedDrone drone;
+
+    simulated_drone_init_attitude_3d(
+        &drone,
+        0.0f,
+        0.0f,
+        0.0f
+    );
+
+    MotorOutputs motors =
+        mixer_quad_x(
+            0.5f,
+            0.0f,
+            0.0f,
+            -0.1f
+        );
+
+    simulated_drone_step_motors(
+        &drone,
+        motors,
+        0.1f
+    );
+
+    assert(drone.yaw_rate < 0.0f);
+    assert(drone.yaw_angle < 0.0f);
+}
+
 int main(void)
 {
     test_initialization();
@@ -473,6 +557,11 @@ int main(void)
     test_stronger_front_motors_produce_negative_pitch();
 
     test_zero_dt_does_not_change_state();
+
+    test_yaw_initialization();
+
+    test_positive_yaw_command_produces_positive_yaw();
+    test_negative_yaw_command_produces_negative_yaw();
 
     printf("All simulation tests passed.\n");
 

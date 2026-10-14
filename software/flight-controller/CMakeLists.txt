@@ -139,3 +139,29 @@ add_test(
         NAME attitude_control_2d_tests
         COMMAND test_attitude_control_2d
 )
+
+add_executable(test_attitude_control_3d
+        tests/test_attitude_control_3d.c
+        src/control/flight_controller.c
+        src/control/pid.c
+        src/estimation/attitude.c
+        src/imu.c
+        src/simulation/simulated_imu.c
+        src/mixer/mixer.c
+)
+
+target_include_directories(
+        test_attitude_control_3d
+        PRIVATE
+        include
+)
+
+target_link_libraries(
+        test_attitude_control_3d
+        m
+)
+
+add_test(
+        NAME attitude_control_3d_tests
+        COMMAND test_attitude_control_3d
+)
