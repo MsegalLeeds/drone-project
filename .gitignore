@@ -27,3 +27,7 @@ dist/
 *.mp4
 *.mov
 *.avi
+
+# Flight controller generated simulation output
+software/flight-controller/attitude.csv
+software/flight-controller/attitude.png

@@ -4,24 +4,22 @@
 #define ROLL_KI 0.0f
 #define ROLL_KD 2.0f
 
-#define ROLL_OUTPUT_MIN -100.0f
-#define ROLL_OUTPUT_MAX 100.0f
+#define PITCH_KP 5.0f
+#define PITCH_KI 0.0f
+#define PITCH_KD 2.0f
 
-/*
- * The simulator currently expects the PID output
- * [-100, 100] to be converted to approximately
- * [-0.5, 0.5] for the mixer.
- *
- * Equivalent to:
- *
- *     control / 200.0f
- */
-#define ROLL_TO_MIXER_SCALE (1.0f / 200.0f)
+#define CONTROL_MIN -100.0f
+#define CONTROL_MAX 100.0f
+
+#define CONTROL_TO_MIXER_SCALE \
+    (1.0f / 200.0f)
 
 void flight_controller_init(
     FlightController *controller,
     float initial_roll_deg,
-    float gyro_x_offset
+    float initial_pitch_deg,
+    float gyro_x_offset,
+    float gyro_y_offset
 )
 {
     if (controller == 0) {
@@ -37,30 +35,52 @@ void flight_controller_init(
 
     pid_set_limits(
         &controller->roll_pid,
-        ROLL_OUTPUT_MIN,
-        ROLL_OUTPUT_MAX
+        CONTROL_MIN,
+        CONTROL_MAX
     );
 
-    attitude_init(
+    pid_init(
+        &controller->pitch_pid,
+        PITCH_KP,
+        PITCH_KI,
+        PITCH_KD
+    );
+
+    pid_set_limits(
+        &controller->pitch_pid,
+        CONTROL_MIN,
+        CONTROL_MAX
+    );
+
+    attitude_init_2d(
         &controller->attitude,
-        initial_roll_deg
+        initial_roll_deg,
+        initial_pitch_deg
     );
 
     controller->gyro_x_offset =
         gyro_x_offset;
+
+    controller->gyro_y_offset =
+        gyro_y_offset;
 }
 
 FlightControllerOutput flight_controller_update(
     FlightController *controller,
     const ImuSample *sample,
     float target_roll_deg,
+    float target_pitch_deg,
     float throttle,
     float dt
 )
 {
     FlightControllerOutput output = {
         .estimated_roll = 0.0f,
+        .estimated_pitch = 0.0f,
+
         .roll_control = 0.0f,
+        .pitch_control = 0.0f,
+
         .motors = {
             .front_left = 0.0f,
             .front_right = 0.0f,
@@ -77,22 +97,29 @@ FlightControllerOutput flight_controller_update(
         return output;
     }
 
-    /*
-     * Apply the calibrated gyro bias before
-     * feeding the measurement into the estimator.
-     */
     float corrected_gyro_x =
         sample->gyro_x -
         controller->gyro_x_offset;
 
+    float corrected_gyro_y =
+        sample->gyro_y -
+        controller->gyro_y_offset;
+
+    attitude_update_2d(
+        &controller->attitude,
+        sample->accel_x,
+        sample->accel_y,
+        sample->accel_z,
+        corrected_gyro_x,
+        corrected_gyro_y,
+        dt
+    );
+
     output.estimated_roll =
-        attitude_update(
-            &controller->attitude,
-            sample->accel_y,
-            sample->accel_z,
-            corrected_gyro_x,
-            dt
-        );
+        controller->attitude.roll;
+
+    output.estimated_pitch =
+        controller->attitude.pitch;
 
     output.roll_control =
         pid_update(
@@ -102,15 +129,27 @@ FlightControllerOutput flight_controller_update(
             dt
         );
 
+    output.pitch_control =
+        pid_update(
+            &controller->pitch_pid,
+            target_pitch_deg,
+            output.estimated_pitch,
+            dt
+        );
+
     float roll_command =
         output.roll_control *
-        ROLL_TO_MIXER_SCALE;
+        CONTROL_TO_MIXER_SCALE;
+
+    float pitch_command =
+        output.pitch_control *
+        CONTROL_TO_MIXER_SCALE;
 
     output.motors =
         mixer_quad_x(
             throttle,
             roll_command,
-            0.0f,
+            pitch_command,
             0.0f
         );
 

@@ -1,6 +1,8 @@
 #include "simulated_imu.h"
 
 #define ROLL_DAMPING 1.5f
+#define PITCH_DAMPING 1.5f
+
 #define MOTOR_TORQUE_SCALE 50.0f
 
 #define GRAVITY 9.81f
@@ -9,7 +11,7 @@
 /*
  * Maximum thrust produced by one motor.
  *
- * With four motors:
+ * Four motors at 0.5:
  *
  * 4 * 0.5 * 4.905 = 9.81 N
  *
@@ -18,16 +20,32 @@
  */
 #define MAX_MOTOR_THRUST 4.905f
 
-void simulated_drone_init(
+void simulated_drone_init_attitude(
     SimulatedDrone *drone,
-    float initial_roll
+    float initial_roll,
+    float initial_pitch
 )
 {
     drone->roll_angle = initial_roll;
     drone->roll_rate = 0.0f;
 
+    drone->pitch_angle = initial_pitch;
+    drone->pitch_rate = 0.0f;
+
     drone->altitude = 0.0f;
     drone->vertical_velocity = 0.0f;
+}
+
+void simulated_drone_init(
+    SimulatedDrone *drone,
+    float initial_roll
+)
+{
+    simulated_drone_init_attitude(
+        drone,
+        initial_roll,
+        0.0f
+    );
 }
 
 void simulated_drone_step(
@@ -62,7 +80,10 @@ void simulated_drone_step_motors(
     }
 
     /*
-     * Roll dynamics
+     * Roll dynamics.
+     *
+     * More thrust on the left produces
+     * positive roll.
      */
     float left_motor_output =
         motors.front_left +
@@ -76,18 +97,46 @@ void simulated_drone_step_motors(
         left_motor_output -
         right_motor_output;
 
-    float angular_acceleration =
+    float roll_acceleration =
         roll_torque * MOTOR_TORQUE_SCALE -
         ROLL_DAMPING * drone->roll_rate;
 
     drone->roll_rate +=
-        angular_acceleration * dt;
+        roll_acceleration * dt;
 
     drone->roll_angle +=
         drone->roll_rate * dt;
 
     /*
-     * Vertical dynamics
+     * Pitch dynamics.
+     *
+     * More thrust at the rear produces
+     * positive pitch.
+     */
+    float front_motor_output =
+        motors.front_left +
+        motors.front_right;
+
+    float rear_motor_output =
+        motors.rear_left +
+        motors.rear_right;
+
+    float pitch_torque =
+        rear_motor_output -
+        front_motor_output;
+
+    float pitch_acceleration =
+        pitch_torque * MOTOR_TORQUE_SCALE -
+        PITCH_DAMPING * drone->pitch_rate;
+
+    drone->pitch_rate +=
+        pitch_acceleration * dt;
+
+    drone->pitch_angle +=
+        drone->pitch_rate * dt;
+
+    /*
+     * Vertical dynamics.
      */
     float total_motor_output =
         motors.front_left +
@@ -96,7 +145,8 @@ void simulated_drone_step_motors(
         motors.rear_left;
 
     float total_thrust =
-        total_motor_output * MAX_MOTOR_THRUST;
+        total_motor_output *
+        MAX_MOTOR_THRUST;
 
     float vertical_acceleration =
         (total_thrust / DRONE_MASS) -

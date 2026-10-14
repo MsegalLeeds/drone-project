@@ -7,14 +7,31 @@ typedef struct {
     float roll_angle;
     float roll_rate;
 
+    float pitch_angle;
+    float pitch_rate;
+
     /* Positive values are upward. */
     float altitude;
     float vertical_velocity;
 } SimulatedDrone;
 
+/*
+ * Legacy roll-only initialisation.
+ *
+ * Pitch starts at zero.
+ */
 void simulated_drone_init(
     SimulatedDrone *drone,
     float initial_roll
+);
+
+/*
+ * Initialise both roll and pitch.
+ */
+void simulated_drone_init_attitude(
+    SimulatedDrone *drone,
+    float initial_roll,
+    float initial_pitch
 );
 
 /*
@@ -29,8 +46,9 @@ void simulated_drone_step(
 /*
  * Advance the simulation using the four motor outputs.
  *
- * This currently models:
+ * This models:
  * - roll dynamics
+ * - pitch dynamics
  * - vertical thrust
  * - gravity
  */

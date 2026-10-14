@@ -22,11 +22,15 @@ static void test_level_hover(void)
     flight_controller_init(
         &controller,
         0.0f,
+        0.0f,
+        0.0f,
         0.0f
     );
 
     ImuSample sample =
-        imu_simulate(
+        imu_simulate_attitude(
+            0.0f,
+            0.0f,
             0.0f,
             0.0f
         );
@@ -35,6 +39,7 @@ static void test_level_hover(void)
         flight_controller_update(
             &controller,
             &sample,
+            0.0f,
             0.0f,
             0.5f,
             0.01f
@@ -49,7 +54,21 @@ static void test_level_hover(void)
 
     assert(
         nearly_equal(
+            output.estimated_pitch,
+            0.0f
+        )
+    );
+
+    assert(
+        nearly_equal(
             output.roll_control,
+            0.0f
+        )
+    );
+
+    assert(
+        nearly_equal(
+            output.pitch_control,
             0.0f
         )
     );
@@ -87,19 +106,19 @@ static void test_positive_roll_generates_correction(void)
 {
     FlightController controller;
 
-    /*
-     * Start with the estimator correctly knowing
-     * that the drone is rolled +10 degrees.
-     */
     flight_controller_init(
         &controller,
         10.0f,
+        0.0f,
+        0.0f,
         0.0f
     );
 
     ImuSample sample =
-        imu_simulate(
+        imu_simulate_attitude(
             10.0f,
+            0.0f,
+            0.0f,
             0.0f
         );
 
@@ -108,22 +127,13 @@ static void test_positive_roll_generates_correction(void)
             &controller,
             &sample,
             0.0f,
+            0.0f,
             0.5f,
             0.01f
         );
 
-    /*
-     * Current roll is positive while target is zero,
-     * so the controller should request negative roll.
-     */
-    assert(
-        output.roll_control < 0.0f
-    );
+    assert(output.roll_control < 0.0f);
 
-    /*
-     * Negative roll correction increases the
-     * right-hand motors relative to the left.
-     */
     assert(
         output.motors.front_right >
         output.motors.front_left
@@ -135,31 +145,85 @@ static void test_positive_roll_generates_correction(void)
     );
 }
 
-static void test_gyro_offset_is_removed(void)
+static void test_positive_pitch_generates_correction(void)
 {
     FlightController controller;
 
-    /*
-     * Simulate a gyro with +1 degree/second bias.
-     */
     flight_controller_init(
         &controller,
         0.0f,
-        1.0f
+        10.0f,
+        0.0f,
+        0.0f
     );
 
     ImuSample sample =
-        imu_simulate(
+        imu_simulate_attitude(
+            0.0f,
+            10.0f,
             0.0f,
             0.0f
         );
-
-    sample.gyro_x += 1.0f;
 
     FlightControllerOutput output =
         flight_controller_update(
             &controller,
             &sample,
+            0.0f,
+            0.0f,
+            0.5f,
+            0.01f
+        );
+
+    /*
+     * Positive pitch must result in a
+     * negative corrective command.
+     */
+    assert(output.pitch_control < 0.0f);
+
+    /*
+     * Negative pitch correction raises the
+     * front motors relative to the rear.
+     */
+    assert(
+        output.motors.front_left >
+        output.motors.rear_left
+    );
+
+    assert(
+        output.motors.front_right >
+        output.motors.rear_right
+    );
+}
+
+static void test_gyro_offsets_are_removed(void)
+{
+    FlightController controller;
+
+    flight_controller_init(
+        &controller,
+        0.0f,
+        0.0f,
+        1.0f,
+        -2.0f
+    );
+
+    ImuSample sample =
+        imu_simulate_attitude(
+            0.0f,
+            0.0f,
+            0.0f,
+            0.0f
+        );
+
+    sample.gyro_x += 1.0f;
+    sample.gyro_y -= 2.0f;
+
+    FlightControllerOutput output =
+        flight_controller_update(
+            &controller,
+            &sample,
+            0.0f,
             0.0f,
             0.5f,
             0.01f
@@ -174,7 +238,21 @@ static void test_gyro_offset_is_removed(void)
 
     assert(
         nearly_equal(
+            output.estimated_pitch,
+            0.0f
+        )
+    );
+
+    assert(
+        nearly_equal(
             output.roll_control,
+            0.0f
+        )
+    );
+
+    assert(
+        nearly_equal(
+            output.pitch_control,
             0.0f
         )
     );
@@ -187,11 +265,15 @@ static void test_invalid_dt_produces_zero_output(void)
     flight_controller_init(
         &controller,
         0.0f,
+        0.0f,
+        0.0f,
         0.0f
     );
 
     ImuSample sample =
-        imu_simulate(
+        imu_simulate_attitude(
+            0.0f,
+            0.0f,
             0.0f,
             0.0f
         );
@@ -200,6 +282,7 @@ static void test_invalid_dt_produces_zero_output(void)
         flight_controller_update(
             &controller,
             &sample,
+            0.0f,
             0.0f,
             0.5f,
             0.0f
@@ -224,7 +307,8 @@ int main(void)
 {
     test_level_hover();
     test_positive_roll_generates_correction();
-    test_gyro_offset_is_removed();
+    test_positive_pitch_generates_correction();
+    test_gyro_offsets_are_removed();
     test_invalid_dt_produces_zero_output();
 
     printf(

@@ -361,6 +361,92 @@ static void test_zero_dt_does_not_change_state(void)
     ));
 }
 
+static void test_pitch_initialization(void)
+{
+    SimulatedDrone drone;
+
+    simulated_drone_init_attitude(
+        &drone,
+        10.0f,
+        -20.0f
+    );
+
+    assert(
+        nearly_equal(
+            drone.roll_angle,
+            10.0f
+        )
+    );
+
+    assert(
+        nearly_equal(
+            drone.pitch_angle,
+            -20.0f
+        )
+    );
+
+    assert(
+        nearly_equal(
+            drone.pitch_rate,
+            0.0f
+        )
+    );
+}
+
+static void test_stronger_rear_motors_produce_positive_pitch(void)
+{
+    SimulatedDrone drone;
+
+    simulated_drone_init_attitude(
+        &drone,
+        0.0f,
+        0.0f
+    );
+
+    MotorOutputs motors = {
+        .front_left = 0.4f,
+        .front_right = 0.4f,
+        .rear_right = 0.6f,
+        .rear_left = 0.6f
+    };
+
+    simulated_drone_step_motors(
+        &drone,
+        motors,
+        0.1f
+    );
+
+    assert(drone.pitch_rate > 0.0f);
+    assert(drone.pitch_angle > 0.0f);
+}
+
+static void test_stronger_front_motors_produce_negative_pitch(void)
+{
+    SimulatedDrone drone;
+
+    simulated_drone_init_attitude(
+        &drone,
+        0.0f,
+        0.0f
+    );
+
+    MotorOutputs motors = {
+        .front_left = 0.6f,
+        .front_right = 0.6f,
+        .rear_right = 0.4f,
+        .rear_left = 0.4f
+    };
+
+    simulated_drone_step_motors(
+        &drone,
+        motors,
+        0.1f
+    );
+
+    assert(drone.pitch_rate < 0.0f);
+    assert(drone.pitch_angle < 0.0f);
+}
+
 int main(void)
 {
     test_initialization();
@@ -381,6 +467,10 @@ int main(void)
     test_zero_throttle_accelerates_downward();
     test_full_throttle_accelerates_upward();
     test_roll_command_preserves_hover_thrust();
+    test_pitch_initialization();
+
+    test_stronger_rear_motors_produce_positive_pitch();
+    test_stronger_front_motors_produce_negative_pitch();
 
     test_zero_dt_does_not_change_state();
 

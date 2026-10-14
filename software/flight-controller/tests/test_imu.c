@@ -55,6 +55,79 @@ static void test_gyro_calibration(float bias)
     assert(nearly_equal(moving.gyro_x, 30.0f));
 }
 
+static void test_pitch_angle(void)
+{
+    ImuSample sample =
+        imu_simulate_attitude(
+            0.0f,
+            30.0f,
+            0.0f,
+            0.0f
+        );
+
+    assert(
+        nearly_equal(
+            sample.accel_x,
+            -4.905f
+        )
+    );
+
+    assert(
+        nearly_equal(
+            sample.accel_y,
+            0.0f
+        )
+    );
+
+    assert(
+        nearly_equal(
+            sample.accel_z,
+            8.495f
+        )
+    );
+}
+
+static void test_pitch_rate(void)
+{
+    ImuSample sample =
+        imu_simulate_attitude(
+            0.0f,
+            0.0f,
+            0.0f,
+            45.0f
+        );
+
+    assert(
+        nearly_equal(
+            sample.gyro_y,
+            45.0f
+        )
+    );
+}
+
+static void test_gyro_y_calibration(void)
+{
+    ImuSample samples[] = {
+        {.gyro_y = 1.8f},
+        {.gyro_y = 2.2f},
+        {.gyro_y = 1.9f},
+        {.gyro_y = 2.1f}
+    };
+
+    float offset =
+        imu_calibrate_gyro_y(
+            samples,
+            4
+        );
+
+    assert(
+        nearly_equal(
+            offset,
+            2.0f
+        )
+    );
+}
+
 int main(void)
 {
     test_level_drone();
@@ -63,6 +136,9 @@ int main(void)
     test_gyro_calibration(0.0f);
     test_gyro_calibration(1.0f);
     test_gyro_calibration(-1.0f);
+    test_pitch_angle();
+    test_pitch_rate();
+    test_gyro_y_calibration();
 
     printf("IMU tests passed\n");
     return 0;

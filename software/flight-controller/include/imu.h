@@ -3,26 +3,46 @@
 
 #include <stddef.h>
 
-/* Roll-only ideal IMU: gravity only, with no sensor bias or noise. */
 typedef struct {
     /* Angular rates in degrees/second. */
     float gyro_x;
     float gyro_y;
     float gyro_z;
 
-    /* Acceleration in m/s^2; a level drone reads +9.81 on Z. */
+    /* Acceleration in m/s^2. */
     float accel_x;
     float accel_y;
     float accel_z;
 } ImuSample;
 
-/* Positive roll rotates gravity toward +Y; gyro_x follows roll rate. */
-ImuSample imu_simulate(float roll_angle_deg, float roll_rate_deg_s);
+/*
+ * Legacy roll-only IMU simulation.
+ *
+ * Pitch and pitch rate are assumed to be zero.
+ */
+ImuSample imu_simulate(
+    float roll_angle_deg,
+    float roll_rate_deg_s
+);
 
 /*
- * Mean gyro-X offset in degrees/second from stationary samples.
- * samples must be non-null and count must be greater than zero.
+ * Simulate an IMU for combined roll and pitch.
  */
-float imu_calibrate_gyro_x(const ImuSample *samples, size_t count);
+ImuSample imu_simulate_attitude(
+    float roll_angle_deg,
+    float pitch_angle_deg,
+    float roll_rate_deg_s,
+    float pitch_rate_deg_s
+);
+
+float imu_calibrate_gyro_x(
+    const ImuSample *samples,
+    size_t count
+);
+
+float imu_calibrate_gyro_y(
+    const ImuSample *samples,
+    size_t count
+);
 
 #endif

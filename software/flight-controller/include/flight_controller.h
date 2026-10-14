@@ -8,47 +8,37 @@
 
 typedef struct {
     PID roll_pid;
+    PID pitch_pid;
+
     AttitudeEstimator attitude;
 
     float gyro_x_offset;
+    float gyro_y_offset;
 } FlightController;
 
 typedef struct {
     float estimated_roll;
+    float estimated_pitch;
+
     float roll_control;
+    float pitch_control;
 
     MotorOutputs motors;
 } FlightControllerOutput;
 
-/*
- * Initialise the roll flight controller.
- *
- * initial_roll_deg:
- *     Initial attitude estimate.
- *
- * gyro_x_offset:
- *     Calibrated gyro X bias in degrees/second.
- */
 void flight_controller_init(
     FlightController *controller,
     float initial_roll_deg,
-    float gyro_x_offset
+    float initial_pitch_deg,
+    float gyro_x_offset,
+    float gyro_y_offset
 );
 
-/*
- * Run one iteration of the flight-control loop.
- *
- * Pipeline:
- *
- * IMU
- *  -> attitude estimator
- *  -> roll PID
- *  -> motor mixer
- */
 FlightControllerOutput flight_controller_update(
     FlightController *controller,
     const ImuSample *sample,
     float target_roll_deg,
+    float target_pitch_deg,
     float throttle,
     float dt
 );
