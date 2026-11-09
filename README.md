@@ -21,8 +21,8 @@ The project combines mechanical engineering, electronics, embedded software, con
 | Area | Lead |
 |---|---|
 | Software / embedded / flight control | Marc |
-| Mechanical design / CAD / manufacturing | TBD |
-| Mechanical design / propulsion / testing | TBD |
+| Mechanical design / CAD / manufacturing | Robbie |
+| Mechanical design / propulsion / testing | Naomi |
 
 Ownership can change as the project develops; important decisions should be recorded in GitHub issues and decision records.
 
