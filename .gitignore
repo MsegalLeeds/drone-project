@@ -36,3 +36,6 @@ software/flight-controller/attitude.png
 /attitude.csv
 /software/flight-controller/attitude_3axis.png
 /software/flight-controller/attitude_yaw.png
+
+cmake-build-*/
+/software/stm32/blue-led/double-blink-ram.hex
