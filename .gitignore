@@ -31,3 +31,11 @@ dist/
 # Flight controller generated simulation output
 software/flight-controller/attitude.csv
 software/flight-controller/attitude.png
+
+# Local simulation outputs (saved reference run in experiments/attitude-simulation/)
+/attitude.csv
+/software/flight-controller/attitude_3axis.png
+/software/flight-controller/attitude_yaw.png
+
+cmake-build-*/
+/software/stm32/blue-led/double-blink-ram.hex

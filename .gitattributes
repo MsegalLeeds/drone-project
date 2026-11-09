@@ -1,0 +1,2 @@
+*.pdf binary
+experiments/stm32-usb/*.hex -text

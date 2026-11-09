@@ -165,3 +165,7 @@ add_test(
         NAME attitude_control_3d_tests
         COMMAND test_attitude_control_3d
 )
+
+if(APPLE)
+    add_subdirectory(../stm32 "${CMAKE_CURRENT_BINARY_DIR}/stm32")
+endif()
