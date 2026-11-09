@@ -3,6 +3,21 @@ set -eu
 cd "$(dirname "$0")"
 project=${FLIGHT_CONTROLLER_DIR:-"../../flight-controller"}
 deps=${BENCH_DEPS:-/private/tmp/drone-usb-step1}
+usb="$deps/tinyusb/src"
+firmware_includes=("$PWD" "$project/include" "$usb" "$deps/BMP3_SensorAPI"
+                   "$deps/CMSIS_5/CMSIS/Core/Include" "$deps/cmsis_device_h7/Include")
+if [[ ${1:-} == --clion-includes ]]; then
+    # Report header paths without fetching dependencies during IDE startup.
+    arm_sysroot="$deps/arm-pkg/Payload/arm-none-eabi"
+    if command -v arm-none-eabi-gcc >/dev/null; then
+        arm_sysroot=$(arm-none-eabi-gcc -print-sysroot)
+    fi
+    for path in "${firmware_includes[@]}" "$arm_sysroot/include"; do
+        [[ "$path" == /* ]] || path="$PWD/$path"
+        printf '%s\n' "$path"
+    done
+    exit 0
+fi
 mkdir -p "$deps" build
 fetch() {
     local name=$1 repo=$2 tag=$3 sha=$4
@@ -30,11 +45,10 @@ flight=("$project/src/control/flight_controller.c" "$project/src/control/pid.c"
 shared=(-std=c11 -O2 -ffp-contract=off "-I$project/include")
 xcrun clang "${shared[@]}" reference.c replay.c faults.c "${flight[@]}" -lm -o build/mac-reference
 build/mac-reference > build/mac.csv
-usb="$deps/tinyusb/src"
 dwc="$usb/portable/synopsys/dwc2"
 arm-none-eabi-gcc "${shared[@]}" -mcpu=cortex-m7 -mthumb -mfpu=fpv5-d16 -mfloat-abi=hard \
-    -DNDEBUG -DSTM32H743xx -ffunction-sections -fdata-sections -I. -I"$usb" \
-    -I"$deps/BMP3_SensorAPI" "$deps/BMP3_SensorAPI/bmp3.c" -I"$deps/CMSIS_5/CMSIS/Core/Include" -I"$deps/cmsis_device_h7/Include" \
+    -DNDEBUG -DSTM32H743xx -ffunction-sections -fdata-sections "${firmware_includes[@]/#/-I}" \
+    "$deps/BMP3_SensorAPI/bmp3.c" \
     -Os -nostartfiles --specs=nano.specs --specs=nosys.specs \
     -Wl,-T,ram.ld,--gc-sections -u _printf_float board.c barometer.c usb.c replay.c faults.c "${flight[@]}" \
     "$usb/tusb.c" "$usb/common/tusb_fifo.c" "$usb/device/usbd.c" "$usb/device/usbd_control.c" \
