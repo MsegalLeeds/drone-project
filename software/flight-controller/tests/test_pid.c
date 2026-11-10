@@ -78,6 +78,16 @@ int main(void)
     /* If anti-windup works, the stored integral should not be huge */
     assert(fabsf(output) <= 100.0f);
 
+    /* A saturated proportional-plus-integral controller must recover
+       immediately when the error reverses, without a stored integral bias. */
+    pid_init(&pid, 2.0f, 1.0f, 0.0f);
+    pid_set_limits(&pid, -1.0f, 1.0f);
+    for (int i = 0; i < 20; ++i) {
+        assert(nearly_equal(pid_update(&pid, 2.0f, 0.0f, 0.1f), 1.0f));
+    }
+    assert(nearly_equal(pid.integral, 0.0f));
+    assert(nearly_equal(pid_update(&pid, -0.25f, 0.0f, 0.1f), -0.525f));
+
     /* Test 8: reset clears PID history */
     pid_init(&pid, 0.0f, 1.0f, 1.0f);
 

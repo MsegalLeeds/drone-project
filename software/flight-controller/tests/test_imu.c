@@ -128,6 +128,16 @@ static void test_gyro_y_calibration(void)
     );
 }
 
+static void test_gyro_z_calibration(void)
+{
+    ImuSample samples[] = {
+        {.gyro_x = 20.0f, .gyro_y = 30.0f, .gyro_z = -4.0f},
+        {.gyro_x = 21.0f, .gyro_y = 31.0f, .gyro_z = -2.0f},
+        {.gyro_x = 22.0f, .gyro_y = 32.0f, .gyro_z =  0.0f}
+    };
+    assert(nearly_equal(imu_calibrate_gyro_z(samples, 3), -2.0f));
+}
+
 int main(void)
 {
     test_level_drone();
@@ -139,6 +149,7 @@ int main(void)
     test_pitch_angle();
     test_pitch_rate();
     test_gyro_y_calibration();
+    test_gyro_z_calibration();
 
     printf("IMU tests passed\n");
     return 0;

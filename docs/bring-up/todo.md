@@ -17,9 +17,12 @@ Tick a box after observing its result. The [build plan](plan.md) explains the co
 ## Barometer
 
 - [x] Exercised the USB barometer command on PB8 (SCL) and PB9 (SDA). The powered module gave no acknowledgement at either address. Both pins read low under the weak pull-down check. The side headers were pushed in without solder.
-- [ ] Solder the headers, check continuity with power off, and capture three pressure and temperature readings.
+- [x] The BMP388 answered at 0x76 with three pressure/temperature readings of 1000.95–1000.99 hPa and 21.63 °C on 10 November 2026.
+- [ ] Verify permanent header connections and repeat stationary sampling. The return-to-desk run included two no-ack replies with B8 high and B9 low during the weak pull-down check.
 
 ## USB and IMU
+
+- [ ] For the Qwiic bench test, read WHO_AM_I over I²C using the [IMU ID command](../../software/stm32/usb-bench/README.md). Expect 0x6C.
 
 - [ ] Check the SparkFun SPI jumper and six basic connections with power off. Read 0x6C from WHO_AM_I after power-up.
 - [ ] Record still, tilted and rotating readings. Check gyro offsets, acceleration near 1 g at rest, units, signs and sample intervals.
@@ -34,6 +37,20 @@ Tick a box after observing its result. The [build plan](plan.md) explains the co
 - [ ] Read a bench log back from microSD. Test missing media, buzzer, barometer, GPS and compass individually.
 - [ ] Confirm ESC protocol and waveforms. Run each motor separately and record its corner and spin direction.
 - [ ] Repeat control-direction, timing, deliberate disarm, reset and signal-loss checks on the assembled aircraft.
+
+### Individual hardware checks to perform when wired
+
+These checks require the physical component and an appropriate reader, meter or output driver. Record the observed result alongside each test. The current USB firmware implements the barometer and motion-sensor identity commands.
+
+| Component | Bench check and pass condition |
+|---|---|
+| Foxeer GPS | With a clear view of the sky, record a valid position fix and advancing timestamps. Compare the location with the known site. |
+| Compass | Record all three magnetic axes while rotating the module away from motors and metal. The readings should change with rotation and return near their starting values in the original orientation. |
+| Receiver and radio | With motor outputs disconnected, record neutral sticks, channel endpoints and arm switch. Switch off the transmitter and verify the receiver reports link loss and the controller disarms. |
+| External microSD | Write a known payload to a new test file, close it, remount and compare every byte. Repeat with the card removed and check that logging reports the failure. |
+| Power distribution, regulator and battery sensor | Compare board voltage and current telemetry with independent meter readings at known bench loads. Check the supply rails against their specified voltages before attaching the flight electronics. |
+| Buzzer and its driver | With the driver wired, command off → on → off. Confirm silence, an audible tone and silence in that order. |
+| Four ESCs and motors | Remove propellers. Check signal shape and disarmed output before energising the motors. With verified power and disarm control, test each corner separately and record its position, rotation and stop response. |
 
 ## University test facility and flight
 

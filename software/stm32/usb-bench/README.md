@@ -24,6 +24,26 @@ To run a newly built image, put the board into BOOT mode before opening the laun
 
 ## Read the barometer
 
-In CLion build **stm32_bench**, then enter `software/stm32/usb-bench` in Terminal. With USB connected, hold BOOT, tap and release RST, then release BOOT. Run `./"Show tilt results.command"` to load the program and verify the tilt replay. Run `python3 read_board.py --barometer` for three sensor samples. The latest hardware attempt returned `BAROMETER,NO_ACK,weak_pulldown_B8=0,B9=0`. The next test requires soldered headers and verified continuity.
+In CLion build **stm32_bench**, then enter `software/stm32/usb-bench` in Terminal. With USB connected, hold BOOT, tap and release RST, then release BOOT. Run `./"Show tilt results.command"` to load the program and verify the tilt replay. Run `python3 read_board.py --barometer` for three sensor samples. An early hardware attempt returned `BAROMETER,NO_ACK,weak_pulldown_B8=0,B9=0`. The BMP388 subsequently returned valid readings at 0x76, with intermittent no-ack errors in a later run.
 
 The [saved bench files](../../../experiments/stm32-usb/) include the USB report, Mac reference and the RAM images from the session. The report records a later replay with a 32 µs peak step and 5 µs maximum start lateness.
+
+## Identify the motion sensor over I²C
+
+For the first bench test, use a four-pin Qwiic-to-female-jumper cable with the SparkFun LSM6DSO. With USB unplugged, connect GND to GND, 3V3 to 3V3, SDA to B9 and SCL to B8. Either side socket works. Use soldered headers on the STM32. The SPI pin plan is for later integration.
+
+Build the current firmware with `./build.sh`. Put the board in programming mode and load it with `./"Show tilt results.command"`. Run `python3 read_board.py --imu-id`. A successful reply contains the I²C address (usually 0x6B) and the WHO_AM_I value 0x6C. This command checks identity only. [SparkFun wiring guide](https://learn.sparkfun.com/tutorials/qwiic-6dof-lsm6dso-breakout-hookup-guide/all) · [ST register definitions](https://github.com/STMicroelectronics/lsm6dso-pid/blob/master/lsm6dso_reg.h)
+
+## Component tests in CLion
+
+With the STM32 unplugged, **Build Project**, then run **All CTest** in the Debug profile. The nine controller groups exercise the PID, accelerometer/gyro simulation, attitude estimator, Quad-X mixer, motor dynamics and closed-loop control. Three bench groups also run on the Mac:
+
+| CTest group | Pass condition |
+|---|---|
+| `bench_replay_and_faults` | All three tilt checkpoints match the expected angles and four motor values. All eight bench interlock cases pass. |
+| `bench_sensor_registers` | The firmware reads a simulated register map through the real Bosch driver, converts to hPa and °C, recognises both motion-sensor addresses, and reports bus, identity, readiness and read failures. The first run needs GitHub access to cache the pinned Bosch source. |
+| `bench_usb_reports` | The Mac reader accepts the recorded board report and valid sensor replies. Incomplete tilt reports, missed deadlines, incorrect IDs, intermittent no-ack replies and invalid measurements fail. |
+
+For a **physical run**, build and load the current bench firmware first. In CLion’s CMake options set `-DSTM32_LIVE_COMPONENTS=board;barometer` for a board with the barometer attached. Choose `board;imu` for the Qwiic motion sensor. Reload CMake. Run the corresponding `live_board`, `live_barometer` or `live_imu` tests. Each selected device must reply. Clear the option to return to offline tests. The same checks can be run individually in Terminal with `python3 read_board.py`, `python3 read_board.py --barometer` or `python3 read_board.py --imu-id`.
+
+The onboard LED has a visual test: load the [blink program](../blue-led/STM32%20C%20guide.md) and compare the observed pattern with the loop you built. The [hardware checklist](../../../docs/bring-up/todo.md) covers parts that require actual wiring or measurement.

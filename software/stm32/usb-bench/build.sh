@@ -28,10 +28,18 @@ fetch() {
         echo "Unexpected revision of $name in $deps" >&2; exit 1;
     }
 }
+fetch BMP3_SensorAPI boschsensortec/BMP3_SensorAPI bmp3_v2.0.6 db4cf8e4140c593b8c3d85f8c6c07335c7ffa9dc
+if [[ ${1:-} == --test-sensors ]]; then
+    test_dir=$(mktemp -d)
+    trap 'rm -rf "$test_dir"' EXIT
+    xcrun clang -std=c11 -Wall -Wextra -I. -I"$deps/BMP3_SensorAPI" \
+        tests/test_sensors.c barometer.c "$deps/BMP3_SensorAPI/bmp3.c" -lm -o "$test_dir/test-sensors"
+    "$test_dir/test-sensors"
+    exit 0
+fi
 fetch tinyusb hathach/tinyusb 0.18.0 86ad6e56c1700e85f1c5678607a762cfe3aa2f47
 fetch cmsis_device_h7 STMicroelectronics/cmsis-device-h7 v1.10.5 e4d57d6edc39f35aced298732829fc2a5e6a8a71
 fetch CMSIS_5 ARM-software/CMSIS_5 5.9.0 2b7495b8535bdcb306dac29b9ded4cfb679d7e5c
-fetch BMP3_SensorAPI boschsensortec/BMP3_SensorAPI bmp3_v2.0.6 db4cf8e4140c593b8c3d85f8c6c07335c7ffa9dc
 if ! command -v arm-none-eabi-gcc >/dev/null; then
     if [[ ! -x "$deps/arm-pkg/Payload/bin/arm-none-eabi-gcc" ]]; then
         pkg=$(/opt/homebrew/bin/brew --cache --cask gcc-arm-embedded)
@@ -50,7 +58,7 @@ arm-none-eabi-gcc "${shared[@]}" -mcpu=cortex-m7 -mthumb -mfpu=fpv5-d16 -mfloat-
     -DNDEBUG -DSTM32H743xx -ffunction-sections -fdata-sections "${firmware_includes[@]/#/-I}" \
     "$deps/BMP3_SensorAPI/bmp3.c" \
     -Os -nostartfiles --specs=nano.specs --specs=nosys.specs \
-    -Wl,-T,ram.ld,--gc-sections -u _printf_float board.c barometer.c usb.c replay.c faults.c "${flight[@]}" \
+    -Wl,-T,ram.ld,--gc-sections -u _printf_float board.c bench_i2c.c barometer.c usb.c replay.c faults.c "${flight[@]}" \
     "$usb/tusb.c" "$usb/common/tusb_fifo.c" "$usb/device/usbd.c" "$usb/device/usbd_control.c" \
     "$usb/class/cdc/cdc_device.c" "$dwc/dcd_dwc2.c" "$dwc/dwc2_common.c" \
     -lm -o build/tilt.elf

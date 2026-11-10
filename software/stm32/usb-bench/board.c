@@ -1,15 +1,15 @@
+#include "bench_i2c.h"
+#include "bench_sensors.h"
 #include "replay.h"
 #include "stm32h7xx.h"
 #include "tusb.h"
 #include <stdio.h>
 #include <string.h>
 
-void barometer_pins_init(void);
-void barometer_measure(char *report, size_t size);
 uint32_t SystemCoreClock = 64000000;
 static volatile uint32_t milliseconds;
 static char report[1024];
-static char baro_report[128];
+static char sensor_report[128];
 extern uint32_t stack_top, bss_start, bss_end;
 void start(void);
 static void tick(void) { ++milliseconds; }
@@ -108,21 +108,25 @@ void start(void) {
     // Let macOS observe the bootloader's USB disconnect before enumerating CDC.
     while (milliseconds < 300) {}
     tusb_init();
-    barometer_pins_init();
+    bench_i2c_init();
     bool passed = run_bench();
     size_t sent = strlen(report);
-    bool send_baro = false;
+    bool send_sensor = false;
     for (;;) {
         tud_task_ext(0, false);
         if (tud_cdc_available()) {
             int command = tud_cdc_read_char();
-            if (command == 'r') { sent = 0; send_baro = false; }
+            if (command == 'r') { sent = 0; send_sensor = false; }
+            if (command == 'i') {
+                imu_identify(sensor_report, sizeof sensor_report);
+                sent = 0; send_sensor = true;
+            }
             if (command == 'b') {
-                barometer_measure(baro_report, sizeof baro_report);
-                sent = 0; send_baro = true;
+                barometer_measure(sensor_report, sizeof sensor_report);
+                sent = 0; send_sensor = true;
             }
         }
-        const char *message = send_baro ? baro_report : report;
+        const char *message = send_sensor ? sensor_report : report;
         if (sent < strlen(message) && tud_cdc_connected()) {
             sent += tud_cdc_write(message + sent, strlen(message) - sent);
             tud_cdc_write_flush();

@@ -39,7 +39,7 @@ media/         Selected project photographs and videos
 
 ## Working in CLion
 
-Open this repository folder in CLion and let CMake load. Select **drone_sim** and click Run to start the simulator on your computer. Run **All CTest** for the flight-controller tests.
+Open this repository folder in CLion and let CMake load. Select **drone_sim** and click Run to start the simulator on your computer. Build the Debug project and run **All CTest** for the flight-controller and Mac bench tests. See the [component test instructions](software/stm32/usb-bench/README.md#component-tests-in-clion) for coverage and optional USB checks.
 
 On macOS, select **stm32_blink** or **stm32_bench** and click Build to compile firmware with the board unplugged. The [STM32 C guide](software/stm32/blue-led/STM32%20C%20guide.md) covers editing and uploading the LED program. The [USB bench instructions](software/stm32/usb-bench/README.md) cover tilt replay and pressure readings. The [bench checklist](docs/bring-up/todo.md) records which hardware tests remain open.
 

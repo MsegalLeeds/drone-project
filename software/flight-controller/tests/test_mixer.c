@@ -83,6 +83,15 @@ static void test_lower_saturation(void)
     assert(motors.rear_left >= 0.0f);
 }
 
+static void test_combined_axes_clamp_each_corner(void)
+{
+    MotorOutputs motors = mixer_quad_x(0.5f, 0.45f, -0.35f, -0.10f);
+    assert(nearly_equal(motors.front_left, 1.0f));
+    assert(nearly_equal(motors.front_right, 0.30f));
+    assert(nearly_equal(motors.rear_right, 0.0f));
+    assert(nearly_equal(motors.rear_left, 0.50f));
+}
+
 int main(void)
 {
     test_hover();
@@ -91,6 +100,7 @@ int main(void)
     test_positive_yaw();
     test_upper_saturation();
     test_lower_saturation();
+    test_combined_axes_clamp_each_corner();
 
     printf("Mixer tests passed\n");
 
